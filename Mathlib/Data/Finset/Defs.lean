@@ -131,6 +131,8 @@ instance : SetLike (Finset α) α :=
 theorem mem_coe {a : α} {s : Finset α} : a ∈ (s : Set α) ↔ a ∈ (s : Finset α) :=
   Iff.rfl
 
+@[simp] theorem mem_toSet {a : α} {s : Finset α} : a ∈ s.toSet ↔ a ∈ s := .rfl
+
 @[simp]
 theorem setOf_mem {α} {s : Finset α} : { a | a ∈ s } = s :=
   rfl
