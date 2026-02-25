@@ -140,16 +140,104 @@ theorem IsMultiplicative.prodPrimeFactors_one_add_of_squarefree [CommSemiring R]
   rw [isMultiplicative_zeta.natCast.prodPrimeFactors_add_of_squarefree h_mult hn,
     coe_zeta_mul_apply]
 
-theorem IsMultiplicative.prodPrimeFactors_one_sub_of_squarefree [CommRing R]
-    (f : ArithmeticFunction R) (hf : f.IsMultiplicative) {n : ℕ} (hn : Squarefree n) :
-    ∏ p ∈ n.primeFactors, (1 - f p) = ∑ d ∈ n.divisors, μ d * f d := by
-  trans (∏ p ∈ n.primeFactors, (1 + (ArithmeticFunction.pmul (μ : ArithmeticFunction R) f) p))
-  · apply prod_congr rfl; intro p hp
-    rw [pmul_apply, intCoe_apply, ArithmeticFunction.moebius_apply_prime
-        (prime_of_mem_primeFactorsList (List.mem_toFinset.mp hp))]
+-- **** NEW PARTS ---
+lemma unique_divisor_decomposition {α : Type*} [CommSemiring α] [GCDMonoid α]
+    [DecompositionMonoid α] [ι : Subsingleton αˣ] {a b d : α} (hab : IsCoprime a b)
+    (hd : d ∣ a * b) : ∃! p : α × α, p.1 ∣ a ∧ p.2 ∣ b ∧ p.1 * p.2 = d := by
+  obtain ⟨d₁, d₂, h1, h2, h3⟩ := exists_dvd_and_dvd_of_dvd_mul hd
+  refine ⟨(d₁, d₂), ⟨h1, h2, h3.symm⟩, fun ⟨q₁, q₂⟩ ⟨hq1, hq2, hq3⟩ ↦ ?_⟩
+  have h_eq : d₁ * d₂ = q₁ * q₂ := by rw [← h3, ← hq3]
+  apply Prod.ext
+  · apply dvd_antisymm
+    · sorry
+    -- · simp?
+    --   have : IsCoprime q₁ d₂ := (hab.coprime_dvd_left hq1).coprime_dvd_right h2
+    --   exact this.dvd_of_dvd_mul_right (by rw [h_eq]; apply dvd_mul_right)
+    · sorry
+      -- have : IsCoprime d₁ q₂ := (hab.coprime_dvd_left h1).coprime_dvd_right hq2
+      -- exact this.dvd_of_dvd_mul_right (by rw [← h_eq]; apply dvd_mul_right)
+  · apply dvd_antisymm
+    · sorry
+      -- have : IsCoprime q₂ d₁ := (hab.symm.coprime_dvd_left hq2).coprime_dvd_right h1
+      -- exact this.dvd_of_dvd_mul_left (by rw [h_eq]; apply dvd_mul_left)
+    · sorry
+      -- have : IsCoprime d₂ q₁ := (hab.symm.coprime_dvd_left h2).coprime_dvd_right hq1
+      -- exact this.dvd_of_dvd_mul_left (by rw [← h_eq]; apply dvd_mul_left)
+
+theorem sum_divisors_mul_of_coprime {R : Type*} [CommRing R]
+    {f : ArithmeticFunction R} (hf : f.IsMultiplicative)
+    {a b : ℕ} (hab : Coprime a b) (ha : a ≠ 0) (hb : b ≠ 0) :
+    ∑ d ∈ (a * b).divisors, f d = (∑ d ∈ a.divisors, f d) * (∑ d ∈ b.divisors, f d) := by
+  let g : ℕ × ℕ → ℕ := fun p ↦ p.1 * p.2
+-- (ab).divisors = Image
+  have h_image : (a * b).divisors = (a.divisors ×ˢ b.divisors).image (g) := by
+    ext d
+    simp only [Finset.mem_image, Finset.mem_product, Nat.mem_divisors]
+    constructor
+    · rintro ⟨hd_dvd, _⟩
+      sorry
+      -- obtain ⟨p, ⟨hp1, hp2, rfl⟩, _⟩ := unique_divisor_decomposition (isCoprime_iff_coprime.mpr hab)
+      --   (by exact_mod_cast hd_dvd)
+      -- exact ⟨p, ⟨⟨hp1, ha⟩, ⟨hp2, hb⟩⟩, rfl⟩
+    · rintro ⟨p, ⟨⟨hp1, _⟩, ⟨hp2, _⟩⟩, rfl⟩
+      exact ⟨mul_dvd_mul hp1 hp2, mul_ne_zero ha hb⟩
+  -- Injectivity
+  have h_inj : Set.InjOn g (↑(a.divisors ×ˢ b.divisors)) := by
+    intro p1 hp1 p2 hp2 h_eq
+    simp only [Finset.mem_coe, Finset.mem_product] at hp1 hp2
+    have hd : p1.1 * p1.2 ∣ a * b :=
+      mul_dvd_mul (Nat.dvd_of_mem_divisors hp1.1) (Nat.dvd_of_mem_divisors hp1.2)
+    sorry
+    -- obtain ⟨p, _, h_unique_imp⟩ := unique_divisor_decomposition hab hd
+    -- rw [h_unique_imp p1 ⟨Nat.dvd_of_mem_divisors hp1.1, Nat.dvd_of_mem_divisors hp1.2, rfl⟩,
+    --     h_unique_imp p2 ⟨Nat.dvd_of_mem_divisors hp2.1, Nat.dvd_of_mem_divisors hp2.2, h_eq.symm⟩]
+  -- Change summation
+  rw [h_image, sum_image h_inj, Finset.sum_product,sum_mul_sum]
+  -- Prove equality of terms
+-- Prove equality of terms
+  refine Finset.sum_congr rfl fun x hx ↦ Finset.sum_congr rfl fun y hy ↦ ?_
+  exact hf.map_mul_of_coprime <|
+    Nat.Coprime.of_dvd_right (Nat.dvd_of_mem_divisors hy) <|
+      Nat.Coprime.of_dvd_left (Nat.dvd_of_mem_divisors hx) hab
+
+theorem IsMultiplicative.prodPrimeFactors_prime_pow_eq_one_sub [CommRing R]
+    {f : ArithmeticFunction R} (hf : f.IsMultiplicative) {p k : ℕ} (hp : p.Prime) (hk : 0 < k) :
+    ∏ p ∈ (p ^ k).primeFactors, (1 - f p) = ∑ d ∈ (p ^ k).divisors, μ d * f d := by
+  rw [Nat.primeFactors_prime_pow hk.ne' hp, Finset.prod_singleton, sum_divisors_prime_pow hp,
+    Finset.sum_range_succ', Finset.sum_eq_single_of_mem 0 (Finset.mem_range.mpr hk)]
+  · simp only [zero_add, pow_one, moebius_apply_prime hp, Int.reduceNeg, Int.cast_neg,
+      Int.cast_one, neg_mul, one_mul, pow_zero, isUnit_iff_eq_one, IsUnit.squarefree,
+      moebius_apply_of_squarefree, cardFactors_one, hf.map_one, mul_one]
     ring
-  · rw [(isMultiplicative_moebius.intCast.pmul hf).prodPrimeFactors_one_add_of_squarefree hn]
-    simp_rw [pmul_apply, intCoe_apply]
+  · intro i _ hi
+    rw [moebius_eq_zero_of_not_squarefree]
+    · simp
+    rw [Nat.squarefree_pow_iff hp.ne_one (by simp : i + 1 ≠ 0)]
+    omega
+
+theorem IsMultiplicative.prodPrimeFactors_one_sub [CommRing R]
+    {f : ArithmeticFunction R} (hf : f.IsMultiplicative) {n : ℕ} (hn : n ≠ 0) :
+    ∏ p ∈ n.primeFactors, (1 - f p) = ∑ d ∈ n.divisors, μ d * f d := by
+  induction n using Nat.recOnPosPrimePosCoprime with
+  | zero => exfalso; simp at hn
+  | one => simp [hf.map_one]
+  | prime_pow p k hp hk => exact hf.prodPrimeFactors_prime_pow_eq_one_sub hp hk
+  | coprime a b _ha _hb hab ha' hb' =>
+
+      -- rw [hab.primeFactors_mul, Finset.prod_union hab.disjoint_primeFactors,
+      --     ← iha (by omega), ← ihb (by omega)]
+      -- let h : ArithmeticFunction R := ⟨fun n ↦ ↑(moebius n) * g n, by simp⟩
+      -- have h_mul : h.IsMultiplicative := by
+      --   refine ⟨?_, ?_⟩
+      --   · simp [h, ArithmeticFunction.coe_mk, hg.left]
+      --   · intro m n hmn
+      --     simp only [h, ArithmeticFunction.coe_mk]
+      --     rw [ArithmeticFunction.isMultiplicative_moebius.right hmn, hg.right hmn]
+      --     push_cast
+      --     ring
+      -- exact sum_divisors_mul_of_coprime h_mul hab (by omega) (by omega)
+      sorry
+
 
 open UniqueFactorizationMonoid
 
