@@ -6,6 +6,8 @@ Authors: Aaron Anderson
 module
 
 public import Mathlib.NumberTheory.ArithmeticFunction.Misc
+public import Mathlib.Algebra.GCDMonoid.Nat
+
 /-!
 # The Möbius function and Möbius inversion
 
@@ -141,28 +143,40 @@ theorem IsMultiplicative.prodPrimeFactors_one_add_of_squarefree [CommSemiring R]
     coe_zeta_mul_apply]
 
 -- **** NEW PARTS ---
-lemma unique_divisor_decomposition {α : Type*} [CommSemiring α] [GCDMonoid α]
-    [DecompositionMonoid α] [ι : Subsingleton αˣ] {a b d : α} (hab : IsCoprime a b)
-    (hd : d ∣ a * b) : ∃! p : α × α, p.1 ∣ a ∧ p.2 ∣ b ∧ p.1 * p.2 = d := by
-  obtain ⟨d₁, d₂, h1, h2, h3⟩ := exists_dvd_and_dvd_of_dvd_mul hd
-  refine ⟨(d₁, d₂), ⟨h1, h2, h3.symm⟩, fun ⟨q₁, q₂⟩ ⟨hq1, hq2, hq3⟩ ↦ ?_⟩
-  have h_eq : d₁ * d₂ = q₁ * q₂ := by rw [← h3, ← hq3]
-  apply Prod.ext
-  · apply dvd_antisymm
-    · sorry
-    -- · simp?
-    --   have : IsCoprime q₁ d₂ := (hab.coprime_dvd_left hq1).coprime_dvd_right h2
-    --   exact this.dvd_of_dvd_mul_right (by rw [h_eq]; apply dvd_mul_right)
-    · sorry
-      -- have : IsCoprime d₁ q₂ := (hab.coprime_dvd_left h1).coprime_dvd_right hq2
-      -- exact this.dvd_of_dvd_mul_right (by rw [← h_eq]; apply dvd_mul_right)
-  · apply dvd_antisymm
-    · sorry
-      -- have : IsCoprime q₂ d₁ := (hab.symm.coprime_dvd_left hq2).coprime_dvd_right h1
-      -- exact this.dvd_of_dvd_mul_left (by rw [h_eq]; apply dvd_mul_left)
-    · sorry
-      -- have : IsCoprime d₂ q₁ := (hab.symm.coprime_dvd_left h2).coprime_dvd_right hq1
-      -- exact this.dvd_of_dvd_mul_left (by rw [← h_eq]; apply dvd_mul_left)
+
+lemma h_inj {a b : ℕ} (hab : Coprime a b) :
+    Set.InjOn (fun p : ℕ × ℕ => p.1 * p.2) (a.divisors ×ˢ b.divisors) := by
+  intro p1 hp1 p2 hp2 heq
+  let hab' := (Nat.coprime_iff_isRelPrime.mp hab)
+  simp only [Set.mem_prod, SetLike.mem_coe, mem_divisors, ne_eq] at hp1 hp2
+  exact (hab'.existsUnique_dvd_dvd_of_dvd_mul
+    (mul_dvd_mul hp1.1.1 hp1.2.1)).unique
+    ⟨hp1.1.1, hp1.2.1, rfl⟩
+    ⟨hp2.1.1, hp2.2.1, heq.symm⟩
+
+
+theorem sum_divisors_mul_of_coprime {R : Type*} [CommRing R]
+    {f : ArithmeticFunction R} (hf : f.IsMultiplicative)
+    {a b : ℕ} (hab : Coprime a b) (ha : a ≠ 0) (hb : b ≠ 0) :
+    ∑ d ∈ (a * b).divisors, f d = (∑ d ∈ a.divisors, f d) * (∑ d ∈ b.divisors, f d) := by
+  let hab' := (Nat.coprime_iff_isRelPrime.mp hab)
+  have h_image : (a * b).divisors = (fun p ↦ p.1 * p.2) '' (a.divisors ×ˢ b.divisors) := by
+    ext d; simp only [Finset.mem_image, Finset.mem_product, Nat.mem_divisors]
+    constructor
+    · rintro ⟨hd, -⟩
+      obtain ⟨p, ⟨hp1, hp2, rfl⟩, -⟩ := unique_divisor_decomposition hab' hd
+      exact ⟨p, ⟨⟨hp1, ha⟩, ⟨hp2, hb⟩⟩, rfl⟩
+    · rintro ⟨p, ⟨⟨hp1, -⟩, ⟨hp2, -⟩⟩, rfl⟩
+      exact ⟨mul_dvd_mul hp1 hp2, mul_ne_zero ha hb⟩
+  have h_inj : Set.InjOn (fun p : ℕ × ℕ => p.1 * p.2) ↑(a.divisors ×ˢ b.divisors) := fun p1 hp1 p2 hp2 heq ↦ by
+    simp only [Finset.mem_coe, Finset.mem_product, Nat.mem_divisors] at hp1 hp2
+    exact (unique_divisor_decomposition hab'
+      (mul_dvd_mul hp1.1.1 hp1.2.1)).unique
+      ⟨hp1.1.1, hp1.2.1, rfl⟩
+      ⟨hp2.1.1, hp2.2.1, heq.symm⟩
+  rw [h_image, sum_image h_inj, Finset.sum_product, sum_mul_sum]
+  exact Finset.sum_congr rfl fun x hx ↦ Finset.sum_congr rfl fun y hy ↦
+    hf.map_mul_of_coprime <| (hab.coprime_dvd_left (Nat.dvd_of_mem_divisors hx)).coprime_dvd_right (Nat.dvd_of_mem_divisors hy)
 
 theorem sum_divisors_mul_of_coprime {R : Type*} [CommRing R]
     {f : ArithmeticFunction R} (hf : f.IsMultiplicative)
