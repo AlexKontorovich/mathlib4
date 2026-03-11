@@ -184,7 +184,7 @@ theorem sum_divisors_mul_of_coprime {R : Type*} [CommRing R]
     ∑ d ∈ (a * b).divisors, f d = (∑ d ∈ a.divisors, f d) * (∑ d ∈ b.divisors, f d) := by
   let g : ℕ × ℕ → ℕ := fun p ↦ p.1 * p.2
 -- (ab).divisors = Image
-  have h_image : (a * b).divisors = (a.divisors ×ˢ b.divisors).image (g) := by
+  have h_image : (a * b).divisors = (a.divisors ×ˢ b.divisors).image (fun p ↦ p.1 * p.2) := by
     ext d
     simp only [Finset.mem_image, Finset.mem_product, Nat.mem_divisors]
     constructor

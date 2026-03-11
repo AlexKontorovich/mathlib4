@@ -14,6 +14,8 @@ public import Mathlib.Data.Nat.Cast.Order.Ring
 public import Mathlib.Data.Nat.PrimeFin
 public import Mathlib.Data.Nat.SuccPred
 public import Mathlib.Order.Interval.Finset.Nat
+public import Mathlib.Algebra.GCDMonoid.Basic
+public import Mathlib.Algebra.GCDMonoid.Nat
 
 /-!
 # Divisor Finsets
